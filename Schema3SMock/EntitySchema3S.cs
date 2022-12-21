@@ -13,16 +13,18 @@ using System.Web;
 using System.Text;
 using Newtonsoft.Json.Linq;
 
-namespace ProjectFlourish
+namespace ProjectFlourish.Schema3S
 {
-    public static class SingleEntityResponseSchema
+    public static class EntitySchema3S
     {
-        [FunctionName("singleEntityResponseSchema")]
+        [FunctionName("EntitySchema3S")]
         public static async Task<HttpResponseMessage> Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequestMessage req,
             ILogger log)
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
+
+            //var queryParams = req.GetQueryNameValuePairs();
 
             var queryParams = HttpUtility.ParseQueryString(req.RequestUri.Query);
             var entityType = queryParams["entityType"];
@@ -48,15 +50,9 @@ namespace ProjectFlourish
 
         private static string GetFileEntitySchema()
         {
-            //return JsonConvert.SerializeObject(JObject.Parse(string.Format(FilEntitySchemaFormat, JsonConvert.SerializeObject(obj["ContentSources"]), JsonConvert.SerializeObject(JsonConvert.DeserializeObject<Dictionary<string, object>>(JsonConvert.SerializeObject(obj["Fields"])).Keys))));
+            var obj = JObject.Parse(FileSchemaFrom3S);
 
-            var joFormat = JObject.Parse(FileEntitySchemaFormat);
-            var joData = JObject.Parse(FileSchemaFrom3S);
-            joFormat["properties"]["Results"]["items"]["properties"] = joData["Fields"];
-
-
-
-            return JsonConvert.SerializeObject(joFormat);
+            return JsonConvert.SerializeObject(obj);
         }
 
         private static readonly string FileSchemaFrom3S = @"
@@ -64,50 +60,23 @@ namespace ProjectFlourish
               ""ContentSources"": [ ""SPO"", ""ODB"" ],
               ""Fields"": {
                 ""Field-Bool"": {
-                  ""type"": ""boolean""
+                  ""type"": ""boolean"",
+                  ""default"": ""false""
                 },
                 ""Field-Int"": {
-                  ""type"": ""integer""
+                  ""type"": ""integer"",
+                  ""default"": ""-99""
                 },
                 ""Field-Str"": {
-                  ""type"": ""string""
+                  ""type"": ""string"",
+                  ""default"": ""-99""
                 },
                 ""Field-Num"": {
-                  ""type"": ""number""
+                  ""type"": ""number"",
+                  ""default"": ""-99.99""
                 }
               }
             }
         ";
-
-        private static readonly string FileEntitySchemaFormat = @"
-                {
-                  ""type"": ""object"",
-                  ""properties"": {
-                    ""Results"": {
-                      ""type"": ""array"",
-                      ""items"": {
-                        ""type"": ""object"",
-                        ""properties"": {
-                          ""Field1"": {
-                            ""type"": ""string""
-                          },
-                          ""Field2"": {
-                            ""type"": ""integer""
-                          },
-                          ""File-Field1"": {
-                            ""type"": ""string""
-                          },
-                          ""File-Field2"": {
-                            ""type"": ""boolean""
-                          }
-                        }
-                      }
-                    },
-                    ""Diagnostics"": {
-                      ""type"": ""object""
-                    }
-                  }
-                }
-            ";
     }
 }

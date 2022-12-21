@@ -11,12 +11,13 @@ using System.Net;
 using System.Runtime.CompilerServices;
 using System.Web;
 using System.Text;
+using ProjectFlourish.MockData;
 
-namespace ProjectFlourish
+namespace ProjectFlourish.Schema3S
 {
-    public static class SingleEntitySearch
+    public static class EntitySearch3S
     {
-        [FunctionName("singleEntitySearch")]
+        [FunctionName("EntitySearch3S")]
         public static async Task<HttpResponseMessage> Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequestMessage req,
             ILogger log)
@@ -35,7 +36,7 @@ namespace ProjectFlourish
                 default:
                     break;
             }*/
-            entitySchema = GetFileEntitySchema();
+            entitySchema = GetFileEntitySearch();
 
             var responseMessage = entitySchema; // JsonConvert.SerializeObject(entitySchema);
             var stringContent = new StringContent(responseMessage, Encoding.UTF8, "application/json");
@@ -46,15 +47,15 @@ namespace ProjectFlourish
         }
 
 
-        private static string GetFileEntitySchema()
+        private static string GetFileEntitySearch()
         {
-            //var data = File.ReadAllText(Path.Combine(".","AdvancedOptionsSchema.json"));
+            //return FileEntityResults3S;
 
-            return FilEntitySchema;
+            return FileAndPeopleResultsFrom3S.Data;
         }
 
 
-        private static readonly string FilEntitySchema = @"
+        private static readonly string FileEntityResults3S = @"
                 {
                   ""results"": [
                     {

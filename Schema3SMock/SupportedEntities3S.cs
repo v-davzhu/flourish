@@ -12,11 +12,11 @@ using System.Collections.Generic;
 using System.Net;
 using System.Text;
 
-namespace ProjectFlourish
+namespace ProjectFlourish.Schema3S
 {
-    public static class SupportedEntities
+    public static class SupportedEntities3S
     {
-        [FunctionName("Entities")]
+        [FunctionName("Entities3S")]
         public static async Task<HttpResponseMessage> Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequestMessage req,
             ILogger log)

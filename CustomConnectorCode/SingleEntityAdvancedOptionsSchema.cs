@@ -13,7 +13,7 @@ using System.Web;
 using System.Text;
 using Newtonsoft.Json.Linq;
 
-namespace ProjectFlourish
+namespace ProjectFlourish.CustomConnectorCode
 {
     public static class SingleEntityAdvancedOptionsSchema
     {
@@ -33,30 +33,33 @@ namespace ProjectFlourish
             switch (entityType)
             {
                 case "File":
-                    entitySchema = GetFileEntitySchema();
+                    entitySchema = await GetFileEntitySchemaAsync();
                     break;
                 default:
                     break;
             }
 
+
             var responseMessage = entitySchema; // JsonConvert.SerializeObject(entitySchema);
             var stringContent = new StringContent(responseMessage, Encoding.UTF8, "application/json");
             HttpResponseMessage response = new HttpResponseMessage(HttpStatusCode.OK);
             response.Content = stringContent;
-            
+
             return response;
         }
 
 
-        private static string GetFileEntitySchema()
+        private static async Task<string> GetFileEntitySchemaAsync()
         {
-            //var data = File.ReadAllText(Path.Combine(".","AdvancedOptionsSchema.json"));
+            HttpRequestMessage httpRequest3S = new HttpRequestMessage(method: HttpMethod.Get, "https://projectflourish.azurewebsites.net/api/EntitySchema3S?entitytype=File");
 
-            //return FilEntitySchema;
+            HttpClient httpClient = new HttpClient();
+            var response3S = await httpClient.SendAsync(httpRequest3S);
 
-            var obj = JObject.Parse(FileSchemaFrom3S);
+            var entitySchema3S = await response3S.Content.ReadAsStringAsync();
 
-            //string.Format(FilEntitySchemaFormat, obj["ContentSources"], obj["Fields"].Values());
+
+            var obj = JObject.Parse(entitySchema3S);
 
             return JsonConvert.SerializeObject(JObject.Parse(string.Format(FilEntitySchemaFormat, JsonConvert.SerializeObject(obj["ContentSources"]), JsonConvert.SerializeObject(JsonConvert.DeserializeObject<Dictionary<string, object>>(JsonConvert.SerializeObject(obj["Fields"])).Keys))));
         }

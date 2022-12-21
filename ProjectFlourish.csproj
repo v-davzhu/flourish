@@ -4,6 +4,11 @@
     <AzureFunctionsVersion>v4</AzureFunctionsVersion>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="DynamicSchemaAzFunc\**" />
+    <EmbeddedResource Remove="DynamicSchemaAzFunc\**" />
+    <None Remove="DynamicSchemaAzFunc\**" />
+  </ItemGroup>
+  <ItemGroup>
     <None Remove="AdvancedOptionsSchema.json" />
   </ItemGroup>
   <ItemGroup>

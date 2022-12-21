@@ -52,6 +52,21 @@ namespace ProjectFlourish
             return FilEntitySchema;
         }
 
+        private static readonly string FileSchemaFrom3S = @"
+            {
+              ""ContentSources"": [ ""SPO"", ""ODB"" ],
+              ""Fields"": {
+                ""Field-A"": {
+                  ""type"": ""boolean"",
+                  ""default"": ""false""
+                },
+                ""Field-B"": {
+                  ""type"": ""integer"",
+                  ""default"": ""-99""
+                }
+              }
+            }
+        ";
 
         private static readonly string FilEntitySchema = @"
                 {

@@ -65,13 +65,21 @@ namespace ProjectFlourish
             {
               ""ContentSources"": [ ""SPO"", ""ODB"" ],
               ""Fields"": {
-                ""Field-A"": {
+                ""Field-Bool"": {
                   ""type"": ""boolean"",
                   ""default"": ""false""
                 },
-                ""Field-B"": {
+                ""Field-Int"": {
                   ""type"": ""integer"",
                   ""default"": ""-99""
+                },
+                ""Field-Str"": {
+                  ""type"": ""string"",
+                  ""default"": ""-99""
+                },
+                ""Field-Num"": {
+                  ""type"": ""number"",
+                  ""default"": ""-99.99""
                 }
               }
             }
@@ -87,66 +95,23 @@ namespace ProjectFlourish
                         ""type"": ""string"",
                         ""enum"": {0}
                       }},
-                      ""default"": [
-                        ""CS1"",
-                        ""CS2""
-                      ]
+                      ""default"": {0}
                     }},
                     ""Fields"": {{
                       ""type"": ""array"",
                       ""items"": {{
                         ""type"": ""string"",
-                        ""enum"": [{1}]
+                        ""enum"": {1}
                       }},
                       ""default"": [
-                        ""Field1"",
-                        ""Field2""
+                        ""Field-Bool"",
+                        ""Field-Int"",
+                        ""Field-Str""
                       ]
                     }}
                   }},
                   ""x-ms-visibility"": ""advanced""
                 }}
-            ";
-
-        private static readonly string FilEntitySchema = @"
-                {
-                  ""type"": ""object"",
-                  ""properties"": {
-                    ""ContentSources"": {
-                      ""type"": ""array"",
-                      ""items"": {
-                        ""type"": ""string"",
-                        ""enum"": [
-                          ""CS1"",
-                          ""CS2"",
-                          ""File-CS1"",
-                          ""File-CS2""
-                        ]
-                      },
-                      ""default"": [
-                        ""CS1"",
-                        ""CS2""
-                      ]
-                    },
-                    ""Fields"": {
-                      ""type"": ""array"",
-                      ""items"": {
-                        ""type"": ""string"",
-                        ""enum"": [
-                          ""Field1"",
-                          ""Field2"",
-                          ""File-Field1"",
-                          ""File-Field2""
-                        ]
-                      },
-                      ""default"": [
-                        ""Field1"",
-                        ""Field2""
-                      ]
-                    }
-                  },
-                  ""x-ms-visibility"": ""advanced""
-                }
             ";
     }
 }

@@ -58,21 +58,17 @@ namespace ProjectFlourish
                 {
                   ""results"": [
                     {
-                      ""Index"": 0,
-                      ""Field1"": ""value-1"",
-                      ""Field2"": false,
-                      ""Name"": ""MyNameA"",
-                      ""SearchTerm"": ""xyz"",
-                      ""ContentSource"": ""ODB""
+                      ""Field-Bool"": false,
+                      ""Field-Int"": 666,
+                      ""Field-Str"": ""AString"",
+                      ""Field-Num"": 88.06
                     },
                     {
-                      ""Index"": 2,
-                      ""Field1"": ""value-2"",
-                      ""Field2"": true,
-                      ""Name"": ""MyNameB"",
-                      ""SearchTerm"": ""xyz"",
-                      ""ContentSource"": ""SPO""
-                    }
+                      ""Field-Bool"": true,
+                      ""Field-Int"": 999,
+                      ""Field-Str"": ""BString"",
+                      ""Field-Num"": 60.88
+                    },
                   ],
                   ""diagnostics"": {
                     ""Data"":  ""blahblah diags""

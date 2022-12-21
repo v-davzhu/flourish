@@ -11,6 +11,7 @@ using System.Net;
 using System.Runtime.CompilerServices;
 using System.Web;
 using System.Text;
+using Newtonsoft.Json.Linq;
 
 namespace ProjectFlourish
 {
@@ -47,28 +48,38 @@ namespace ProjectFlourish
 
         private static string GetFileEntitySchema()
         {
-            //var data = File.ReadAllText(Path.Combine(".","AdvancedOptionsSchema.json"));
+            //return JsonConvert.SerializeObject(JObject.Parse(string.Format(FilEntitySchemaFormat, JsonConvert.SerializeObject(obj["ContentSources"]), JsonConvert.SerializeObject(JsonConvert.DeserializeObject<Dictionary<string, object>>(JsonConvert.SerializeObject(obj["Fields"])).Keys))));
 
-            return FilEntitySchema;
+            var joFormat = JObject.Parse(FileEntitySchemaFormat);
+            var joData = JObject.Parse(FileSchemaFrom3S);
+            joFormat["properties"]["Results"]["items"]["properties"] = joData["Fields"];
+
+
+
+            return JsonConvert.SerializeObject(joFormat);
         }
 
         private static readonly string FileSchemaFrom3S = @"
             {
               ""ContentSources"": [ ""SPO"", ""ODB"" ],
               ""Fields"": {
-                ""Field-A"": {
-                  ""type"": ""boolean"",
-                  ""default"": ""false""
+                ""Field-Bool"": {
+                  ""type"": ""boolean""
                 },
-                ""Field-B"": {
-                  ""type"": ""integer"",
-                  ""default"": ""-99""
+                ""Field-Int"": {
+                  ""type"": ""integer""
+                },
+                ""Field-Str"": {
+                  ""type"": ""string""
+                },
+                ""Field-Num"": {
+                  ""type"": ""number""
                 }
               }
             }
         ";
 
-        private static readonly string FilEntitySchema = @"
+        private static readonly string FileEntitySchemaFormat = @"
                 {
                   ""type"": ""object"",
                   ""properties"": {

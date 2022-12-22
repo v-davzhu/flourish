@@ -61,34 +61,10 @@ namespace ProjectFlourish.CustomConnectorCode
 
             var obj = JObject.Parse(entitySchema3S);
 
-            return JsonConvert.SerializeObject(JObject.Parse(string.Format(FilEntitySchemaFormat, JsonConvert.SerializeObject(obj["ContentSources"]), JsonConvert.SerializeObject(JsonConvert.DeserializeObject<Dictionary<string, object>>(JsonConvert.SerializeObject(obj["Fields"])).Keys))));
+            return JsonConvert.SerializeObject(JObject.Parse(string.Format(AdvancedOptionsSwaggerView, JsonConvert.SerializeObject(obj["ContentSources"]), JsonConvert.SerializeObject(JsonConvert.DeserializeObject<Dictionary<string, object>>(JsonConvert.SerializeObject(obj["Fields"])).Keys))));
         }
 
-        private static readonly string FileSchemaFrom3S = @"
-            {
-              ""ContentSources"": [ ""SPO"", ""ODB"" ],
-              ""Fields"": {
-                ""Field-Bool"": {
-                  ""type"": ""boolean"",
-                  ""default"": ""false""
-                },
-                ""Field-Int"": {
-                  ""type"": ""integer"",
-                  ""default"": ""-99""
-                },
-                ""Field-Str"": {
-                  ""type"": ""string"",
-                  ""default"": ""-99""
-                },
-                ""Field-Num"": {
-                  ""type"": ""number"",
-                  ""default"": ""-99.99""
-                }
-              }
-            }
-        ";
-
-        private static readonly string FilEntitySchemaFormat = @"
+        private static readonly string AdvancedOptionsSwaggerView = @"
                 {{
                   ""type"": ""object"",
                   ""properties"": {{

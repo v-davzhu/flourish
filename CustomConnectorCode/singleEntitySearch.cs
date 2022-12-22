@@ -24,6 +24,10 @@ namespace ProjectFlourish.CustomConnectorCode
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
 
+            var powerRequestString = await req.Content.ReadAsStringAsync();
+
+            log.LogInformation($"Power Request: \n{powerRequestString}\n");
+
             var queryParams = HttpUtility.ParseQueryString(req.RequestUri.Query);
             //var entityType = queryParams["entityType"];
             var entitySchema = string.Empty;
@@ -36,7 +40,7 @@ namespace ProjectFlourish.CustomConnectorCode
                 default:
                     break;
             }*/
-            entitySchema = await GetFileEntityResultsAsync();
+            entitySchema = await GetFileEntityResultsAsync(powerRequestString);
 
             var responseMessage = entitySchema; // JsonConvert.SerializeObject(entitySchema);
             var stringContent = new StringContent(responseMessage, Encoding.UTF8, "application/json");
@@ -47,10 +51,13 @@ namespace ProjectFlourish.CustomConnectorCode
         }
 
 
-        private static async Task<string> GetFileEntityResultsAsync()
+        private static async Task<string> GetFileEntityResultsAsync(string powerRequestString)
         {
-            HttpRequestMessage httpRequest3S = new HttpRequestMessage(method: HttpMethod.Get, "https://projectflourish.azurewebsites.net/api/EntitySearch3S?entitytype=File");
+            var requestTransformer = new PowerV1toSearchV2RequestTransformer();
+            var string3SRequest = await requestTransformer.Transform(powerRequestString);
 
+            HttpRequestMessage httpRequest3S = new HttpRequestMessage(method: HttpMethod.Post, "https://projectflourish.azurewebsites.net/api/EntitySearch3S?entitytype=File");
+            httpRequest3S.Content = new StringContent(string3SRequest, Encoding.UTF8, "application/json");
             HttpClient httpClient = new HttpClient();
             var response3S = await httpClient.SendAsync(httpRequest3S);
 

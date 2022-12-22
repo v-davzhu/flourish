@@ -24,6 +24,10 @@ namespace ProjectFlourish.Schema3S
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
 
+            var requestString3S = await req.Content.ReadAsStringAsync();
+
+            log.LogInformation($"3S Request: \n{requestString3S}\n");
+
             var queryParams = HttpUtility.ParseQueryString(req.RequestUri.Query);
             //var entityType = queryParams["entityType"];
             var entitySchema = string.Empty;
@@ -49,32 +53,7 @@ namespace ProjectFlourish.Schema3S
 
         private static string GetFileEntitySearch()
         {
-            //return FileEntityResults3S;
-
             return FileAndPeopleResultsFrom3S.Data;
         }
-
-
-        private static readonly string FileEntityResults3S = @"
-                {
-                  ""results"": [
-                    {
-                      ""Field-Bool"": false,
-                      ""Field-Int"": 666,
-                      ""Field-Str"": ""AString"",
-                      ""Field-Num"": 88.06
-                    },
-                    {
-                      ""Field-Bool"": true,
-                      ""Field-Int"": 999,
-                      ""Field-Str"": ""BString"",
-                      ""Field-Num"": 60.88
-                    },
-                  ],
-                  ""diagnostics"": {
-                    ""Data"":  ""blahblah diags""
-                  }
-                }
-            ";
     }
 }

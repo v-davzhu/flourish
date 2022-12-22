@@ -14,9 +14,9 @@ namespace ProjectFlourish.CustomConnectorCode
             public IDictionary<string, object> Diagnostics;
         }
 
-        public async Task<PowerResponse> Transform(JObject jsonObject)
+        public async Task<PowerResponse> Transform(JObject jsonObject3SResponse)
         {
-            var rows = await Tabularize(jsonObject);
+            var rows = await Tabularize(jsonObject3SResponse);
 
             var response = new PowerResponse
             {

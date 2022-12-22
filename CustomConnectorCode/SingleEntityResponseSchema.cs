@@ -48,41 +48,21 @@ namespace ProjectFlourish.CustomConnectorCode
 
         private static async Task<string> GetFileEntitySchemaAsync()
         {
-            HttpRequestMessage httpRequest3S = new HttpRequestMessage(method: HttpMethod.Get, "https://projectflourish.azurewebsites.net/api/EntityResponseSchema3S?entitytype=File");
+            HttpRequestMessage httpRequest3S = new HttpRequestMessage(method: HttpMethod.Get, "https://projectflourish.azurewebsites.net/api/EntitySchema3S?entitytype=File"); //"https://projectflourish.azurewebsites.net/api/EntityResponseSchema3S?entitytype=File");
 
             HttpClient httpClient = new HttpClient();
             var response3S = await httpClient.SendAsync(httpRequest3S);
 
             var entitySchema3S = await response3S.Content.ReadAsStringAsync();
 
-            var joFormat = JObject.Parse(FileEntitySchemaFormat);
+            var joFormat = JObject.Parse(ResponseSchemaSwaggerView);
             var joData = JObject.Parse(entitySchema3S);
             joFormat["properties"]["Results"]["items"]["properties"] = joData["Fields"];
 
             return JsonConvert.SerializeObject(joFormat);
         }
 
-        private static readonly string FileSchemaFrom3S = @"
-            {
-              ""ContentSources"": [ ""SPO"", ""ODB"" ],
-              ""Fields"": {
-                ""Field-Bool"": {
-                  ""type"": ""boolean""
-                },
-                ""Field-Int"": {
-                  ""type"": ""integer""
-                },
-                ""Field-Str"": {
-                  ""type"": ""string""
-                },
-                ""Field-Num"": {
-                  ""type"": ""number""
-                }
-              }
-            }
-        ";
-
-        private static readonly string FileEntitySchemaFormat = @"
+        private static readonly string ResponseSchemaSwaggerView = @"
                 {
                   ""type"": ""object"",
                   ""properties"": {
@@ -91,18 +71,7 @@ namespace ProjectFlourish.CustomConnectorCode
                       ""items"": {
                         ""type"": ""object"",
                         ""properties"": {
-                          ""Field1"": {
-                            ""type"": ""string""
-                          },
-                          ""Field2"": {
-                            ""type"": ""integer""
-                          },
-                          ""File-Field1"": {
-                            ""type"": ""string""
-                          },
-                          ""File-Field2"": {
-                            ""type"": ""boolean""
-                          }
+                            // actual fields go here
                         }
                       }
                     },

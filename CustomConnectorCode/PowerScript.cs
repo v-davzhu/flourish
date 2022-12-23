@@ -1,10 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -30,16 +24,15 @@ using System.Drawing.Imaging;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Microsoft.AspNetCore.Routing;
-using Microsoft.Azure.WebJobs.Extensions.Http;
-using Microsoft.Azure.WebJobs;
+using System.Runtime.CompilerServices;
+using Microsoft.AspNetCore.Http.Internal;
 
 namespace PowerScript
 {
     public abstract class ScriptBase
     {
         // Context object
-        public IScriptContext Context { get; }
+        public IScriptContext Context { get; set; }
 
         // CancellationToken for the execution
         public CancellationToken CancellationToken { get; }
@@ -51,19 +44,36 @@ namespace PowerScript
         public abstract Task<HttpResponseMessage> ExecuteAsync();
     }
 
+    public class ScriptContext : IScriptContext
+    {
+        public static readonly HttpClient httpClient = new HttpClient();
+
+        public string CorrelationId { get; }
+
+        public string OperationId { get; set; }
+        public HttpRequestMessage Request { get; set; }
+
+        public ILogger Logger { get; set; }
+
+        public Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            return httpClient.SendAsync(request, cancellationToken);
+        }
+    }
+
     public interface IScriptContext
     {
         // Correlation Id
         string CorrelationId { get; }
 
         // Connector Operation Id
-        string OperationId { get; }
+        string OperationId { get; set; }
 
         // Incoming request
-        HttpRequestMessage Request { get; }
+        HttpRequestMessage Request { get; set; }
 
         // Logger instance
-        ILogger Logger { get; }
+        ILogger Logger { get; set; }
 
         // Used to send an HTTP request
         // Use this method to send requests instead of HttpClient.SendAsync
@@ -76,42 +86,160 @@ namespace PowerScript
     {
         public override StringContent CreateJsonContent(string serializedJson)
         {
-            throw new NotImplementedException();
+            return new StringContent(serializedJson, Encoding.UTF8, "application/json");
         }
 
         public override async Task<HttpResponseMessage> ExecuteAsync()
         {
+            HttpResponseMessage response = new HttpResponseMessage(HttpStatusCode.OK);
 
-            // we check action url
-            if (this.Context.Request.RequestUri.ToString().Contains("/Entities"))
-                return await SupportedEntities.Run(this.Context.Request, this.Context.Logger);
-
-            // call into action-class
-            return null;
-        }
-
-        public static class SupportedEntities
-        {
-            [FunctionName("Entities")]
-            public static async Task<HttpResponseMessage> Run(HttpRequestMessage req,
-                ILogger log)
+            if (this.Context.OperationId == "GetEntities")
             {
-
-                log.LogInformation("C# HTTP trigger function processed a request.");
-
                 HttpRequestMessage httpRequest3S = new HttpRequestMessage(method: HttpMethod.Get, "https://projectflourish.azurewebsites.net/api/Entities3S");
+                var response3S = await this.Context.SendAsync(httpRequest3S, this.CancellationToken);
+                var response3SContent = await response3S.Content.ReadAsStringAsync();
 
-                HttpClient httpClient = new HttpClient();
-                var response3S = await httpClient.SendAsync(httpRequest3S);
+                response.Content = CreateJsonContent(response3SContent);
+                return response;
+            }
+            else if (this.Context.OperationId == "GetAdvancedOptionsSchema")
+            {
+                var queryParams = HttpUtility.ParseQueryString(this.Context.Request.RequestUri.Query);
+                var entityType = queryParams["entityType"];
 
-                var entities3S = await response3S.Content.ReadAsStringAsync();
+                if (string.IsNullOrEmpty(entityType))
+                {
+                    response.Content = CreateJsonContent(string.Empty);
+                    return response;
+                }
 
-                var stringContent = new StringContent(entities3S, Encoding.UTF8, "application/json");
-                HttpResponseMessage response = new HttpResponseMessage(HttpStatusCode.OK);
-                response.Content = stringContent;
+                HttpRequestMessage httpRequest3S = new HttpRequestMessage(method: HttpMethod.Get, $"https://projectflourish.azurewebsites.net/api/EntitySchema3S?entitytype={entityType}");
+
+                var response3S = await this.Context.SendAsync(httpRequest3S, this.CancellationToken);
+                var entitySchema3S = await response3S.Content.ReadAsStringAsync();
+
+                var advancedOptionsSchema = ConvertToAdvancedOptionsSchema(entitySchema3S);
+
+                response.Content = CreateJsonContent(JsonConvert.SerializeObject(advancedOptionsSchema));
+                //entitySchema = JsonConvert.SerializeObject(JObject.Parse(string.Format(AdvancedOptionsSwaggerView, JsonConvert.SerializeObject(obj["ContentSources"]), JsonConvert.SerializeObject(JsonConvert.DeserializeObject<Dictionary<string, object>>(JsonConvert.SerializeObject(obj["Fields"])).Keys))));
 
                 return response;
             }
+            else if (this.Context.OperationId == "GetResponseSchema")
+            {
+                var queryParams = HttpUtility.ParseQueryString(this.Context.Request.RequestUri.Query);
+                var entityType = queryParams["entityType"];
+                var entitySchema = string.Empty;
+
+                switch (entityType)
+                {
+                    case "File":
+                        HttpRequestMessage httpRequest3S = new HttpRequestMessage(method: HttpMethod.Get, "https://projectflourish.azurewebsites.net/api/EntitySchema3S?entitytype=File");
+
+                        var response3S = await this.Context.SendAsync(httpRequest3S, this.CancellationToken);
+                        var entitySchema3S = await response3S.Content.ReadAsStringAsync();
+
+                        var joFormat = JObject.Parse(ResponseSchemaSwaggerView);
+                        var joData = JObject.Parse(entitySchema3S);
+                        joFormat["properties"]["Results"]["items"]["properties"] = joData["Fields"];
+
+                        entitySchema = JsonConvert.SerializeObject(joFormat);
+                        break;
+                    default:
+                        break;
+                }
+
+                response.Content = CreateJsonContent(entitySchema);
+                return response;
+            }
+
+            return null;
         }
+
+        private JObject ConvertToAdvancedOptionsSchema(string entitySchema3S)
+        {
+            var objEntitySchema3S = JObject.Parse(entitySchema3S);
+
+            var contentSources = objEntitySchema3S["ContentSources"].ToObject<List<string>>();
+            var fields = objEntitySchema3S["Fields"].ToObject<Dictionary<string, object>>();
+
+            var advancedOptionsSchema = new JObject
+            {
+                ["type"] = "object",
+                ["properties"] = new JObject
+                {
+                    ["ContentSources"] = new JObject
+                    {
+                        ["type"] = "array",
+                        ["items"] = new JObject
+                        {
+                            ["type"] = "string",
+                            ["enum"] = JToken.FromObject(contentSources)
+                        },
+                        ["default"] = JToken.FromObject(contentSources)
+                    },
+                    ["Fields"] = new JObject
+                    {
+                        ["type"] = "array",
+                        ["items"] = new JObject
+                        {
+                            ["type"] = "string",
+                            ["enum"] = JToken.FromObject(fields.Keys)
+                        },
+                        ["default"] = JToken.FromObject(fields.Keys)
+                    }
+                }
+            };
+
+            return advancedOptionsSchema;
+        }
+
+        private static readonly string AdvancedOptionsSwaggerView = @"
+                {{
+                  ""type"": ""object"",
+                  ""properties"": {{
+                    ""ContentSources"": {{
+                      ""type"": ""array"",
+                      ""items"": {{
+                        ""type"": ""string"",
+                        ""enum"": {0}
+                      }},
+                      ""default"": {0}
+                    }},
+                    ""Fields"": {{
+                      ""type"": ""array"",
+                      ""items"": {{
+                        ""type"": ""string"",
+                        ""enum"": {1}
+                      }},
+                      ""default"": [
+                        ""Field-Bool"",
+                        ""Field-Int"",
+                        ""Field-Str""
+                      ]
+                    }}
+                  }}
+                }}
+            ";
+
+        private static readonly string ResponseSchemaSwaggerView = @"
+                {
+                  ""type"": ""object"",
+                  ""properties"": {
+                    ""Results"": {
+                      ""type"": ""array"",
+                      ""items"": {
+                        ""type"": ""object"",
+                        ""properties"": {
+                            // actual fields go here
+                        }
+                      }
+                    },
+                    ""Diagnostics"": {
+                      ""type"": ""object""
+                    }
+                  }
+                }
+            ";
     }
 }

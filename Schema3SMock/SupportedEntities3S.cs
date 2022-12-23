@@ -27,8 +27,7 @@ namespace ProjectFlourish.Schema3S
                 "File",
                 "Message",
                 "People",
-                "External",
-                "test"
+                "External"
             };
 
             var responseMessage = JsonConvert.SerializeObject(entities);

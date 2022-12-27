@@ -84,6 +84,10 @@ namespace PowerScript
 
     public class Script : ScriptBase
     {
+        public static readonly string Entities3SEndpoint = "https://projectflourish.azurewebsites.net/api/Entities3S";
+        public static readonly string AdvancedOptions3SEndpoint = @"https://projectflourish.azurewebsites.net/api/EntitySchema3S?entitytype={0}";
+        public static readonly string ResponseSchema3SEndpoint = @"https://projectflourish.azurewebsites.net/api/EntitySchema3S?entitytype={0}";
+
         public override StringContent CreateJsonContent(string serializedJson)
         {
             return new StringContent(serializedJson, Encoding.UTF8, "application/json");
@@ -95,7 +99,7 @@ namespace PowerScript
 
             if (this.Context.OperationId == "GetEntities")
             {
-                HttpRequestMessage httpRequest3S = new HttpRequestMessage(method: HttpMethod.Get, "https://projectflourish.azurewebsites.net/api/Entities3S");
+                HttpRequestMessage httpRequest3S = new HttpRequestMessage(method: HttpMethod.Get, Entities3SEndpoint);
                 var response3S = await this.Context.SendAsync(httpRequest3S, this.CancellationToken);
                 var response3SContent = await response3S.Content.ReadAsStringAsync();
 
@@ -113,50 +117,44 @@ namespace PowerScript
                     return response;
                 }
 
-                HttpRequestMessage httpRequest3S = new HttpRequestMessage(method: HttpMethod.Get, $"https://projectflourish.azurewebsites.net/api/EntitySchema3S?entitytype={entityType}");
+                HttpRequestMessage httpRequest3S = new HttpRequestMessage(method: HttpMethod.Get, string.Format(AdvancedOptions3SEndpoint, entityType));
 
                 var response3S = await this.Context.SendAsync(httpRequest3S, this.CancellationToken);
                 var entitySchema3S = await response3S.Content.ReadAsStringAsync();
 
-                var advancedOptionsSchema = ConvertToAdvancedOptionsSchema(entitySchema3S);
+                string advancedOptionsSchemaSwagger = GetAdvancedOptionsSchemaSwagger(entitySchema3S);
 
-                response.Content = CreateJsonContent(JsonConvert.SerializeObject(advancedOptionsSchema));
-                //entitySchema = JsonConvert.SerializeObject(JObject.Parse(string.Format(AdvancedOptionsSwaggerView, JsonConvert.SerializeObject(obj["ContentSources"]), JsonConvert.SerializeObject(JsonConvert.DeserializeObject<Dictionary<string, object>>(JsonConvert.SerializeObject(obj["Fields"])).Keys))));
-
+                response.Content = CreateJsonContent(advancedOptionsSchemaSwagger);
                 return response;
             }
             else if (this.Context.OperationId == "GetResponseSchema")
             {
                 var queryParams = HttpUtility.ParseQueryString(this.Context.Request.RequestUri.Query);
                 var entityType = queryParams["entityType"];
-                var entitySchema = string.Empty;
 
-                switch (entityType)
+                if (string.IsNullOrEmpty(entityType))
                 {
-                    case "File":
-                        HttpRequestMessage httpRequest3S = new HttpRequestMessage(method: HttpMethod.Get, "https://projectflourish.azurewebsites.net/api/EntitySchema3S?entitytype=File");
-
-                        var response3S = await this.Context.SendAsync(httpRequest3S, this.CancellationToken);
-                        var entitySchema3S = await response3S.Content.ReadAsStringAsync();
-
-                        var joFormat = JObject.Parse(ResponseSchemaSwaggerView);
-                        var joData = JObject.Parse(entitySchema3S);
-                        joFormat["properties"]["Results"]["items"]["properties"] = joData["Fields"];
-
-                        entitySchema = JsonConvert.SerializeObject(joFormat);
-                        break;
-                    default:
-                        break;
+                    response.Content = CreateJsonContent(string.Empty);
+                    return response;
                 }
 
-                response.Content = CreateJsonContent(entitySchema);
+                HttpRequestMessage httpRequest3S = new HttpRequestMessage(method: HttpMethod.Get, string.Format(ResponseSchema3SEndpoint, entityType));
+
+                var response3S = await this.Context.SendAsync(httpRequest3S, this.CancellationToken);
+                var responseSchema3S = await response3S.Content.ReadAsStringAsync();
+
+                string responseSchemaSwagger = GetResponseSchemaSwagger(responseSchema3S);
+
+                response.Content = CreateJsonContent(responseSchemaSwagger);
                 return response;
+
             }
 
-            return null;
+            response.Content = CreateJsonContent(string.Empty);
+            return response;
         }
 
-        private JObject ConvertToAdvancedOptionsSchema(string entitySchema3S)
+        private string GetAdvancedOptionsSchemaSwagger(string entitySchema3S)
         {
             var objEntitySchema3S = JObject.Parse(entitySchema3S);
 
@@ -191,55 +189,35 @@ namespace PowerScript
                 }
             };
 
-            return advancedOptionsSchema;
+            return JsonConvert.SerializeObject(advancedOptionsSchema);
         }
 
-        private static readonly string AdvancedOptionsSwaggerView = @"
-                {{
-                  ""type"": ""object"",
-                  ""properties"": {{
-                    ""ContentSources"": {{
-                      ""type"": ""array"",
-                      ""items"": {{
-                        ""type"": ""string"",
-                        ""enum"": {0}
-                      }},
-                      ""default"": {0}
-                    }},
-                    ""Fields"": {{
-                      ""type"": ""array"",
-                      ""items"": {{
-                        ""type"": ""string"",
-                        ""enum"": {1}
-                      }},
-                      ""default"": [
-                        ""Field-Bool"",
-                        ""Field-Int"",
-                        ""Field-Str""
-                      ]
-                    }}
-                  }}
-                }}
-            ";
+        private string GetResponseSchemaSwagger(string responseSchema3S)
+        {
+            var objResponseSchema3S = JObject.Parse(responseSchema3S);
 
-        private static readonly string ResponseSchemaSwaggerView = @"
+            var responseSchema = new JObject
+            {
+                ["type"] = "object",
+                ["properties"] = new JObject
                 {
-                  ""type"": ""object"",
-                  ""properties"": {
-                    ""Results"": {
-                      ""type"": ""array"",
-                      ""items"": {
-                        ""type"": ""object"",
-                        ""properties"": {
-                            // actual fields go here
+                    ["results"] = new JObject
+                    {
+                        ["type"] = "array",
+                        ["items"] = new JObject
+                        {
+                            ["type"] = "object",
+                            ["properties"] = objResponseSchema3S["Fields"]
                         }
-                      }
                     },
-                    ""Diagnostics"": {
-                      ""type"": ""object""
+                    ["diagnostics"] = new JObject
+                    {
+                        ["type"] = "object"
                     }
-                  }
                 }
-            ";
+            };
+
+            return JsonConvert.SerializeObject(responseSchema);
+        }
     }
 }

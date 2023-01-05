@@ -12,17 +12,29 @@ using System.Runtime.CompilerServices;
 using System.Web;
 using System.Text;
 using Newtonsoft.Json.Linq;
+using PowerScript;
 
 namespace ProjectFlourish.CustomConnectorCode
 {
     public static class SingleEntitySearch
     {
+        public static Script script = new Script();
+
         [FunctionName("singleEntitySearch")]
         public static async Task<HttpResponseMessage> Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequestMessage req,
             ILogger log)
         {
+
             log.LogInformation("C# HTTP trigger function processed a request.");
+
+            script.Context = new ScriptContext();
+            script.Context.OperationId = "SingleEntitySearch";
+            script.Context.Request = req;
+
+            return await script.ExecuteAsync();
+
+            /*log.LogInformation("C# HTTP trigger function processed a request.");
 
             var powerRequestString = await req.Content.ReadAsStringAsync();
 
@@ -30,16 +42,7 @@ namespace ProjectFlourish.CustomConnectorCode
 
             var queryParams = HttpUtility.ParseQueryString(req.RequestUri.Query);
             //var entityType = queryParams["entityType"];
-            var entitySchema = string.Empty;
-            /*
-            switch (entityType)
-            {
-                case "File":
-                    entitySchema = GetFileEntitySchema();
-                    break;
-                default:
-                    break;
-            }*/
+            var entitySchema = string.Empty
             entitySchema = await GetFileEntityResultsAsync(powerRequestString);
 
             var responseMessage = entitySchema; // JsonConvert.SerializeObject(entitySchema);
@@ -47,7 +50,7 @@ namespace ProjectFlourish.CustomConnectorCode
             HttpResponseMessage response = new HttpResponseMessage(HttpStatusCode.OK);
             response.Content = stringContent;
 
-            return response;
+            return response;*/
         }
 
 

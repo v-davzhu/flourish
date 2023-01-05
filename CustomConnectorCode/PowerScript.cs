@@ -26,6 +26,8 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Http.Internal;
+using static ProjectFlourish.CustomConnectorCode.PowerV1toSearchV2RequestTransformer;
+using ProjectFlourish.CustomConnectorCode;
 
 namespace PowerScript
 {
@@ -87,7 +89,9 @@ namespace PowerScript
         public static readonly string Entities3SEndpoint = "https://projectflourish.azurewebsites.net/api/Entities3S";
         public static readonly string AdvancedOptions3SEndpoint = @"https://projectflourish.azurewebsites.net/api/EntitySchema3S?entitytype={0}";
         public static readonly string ResponseSchema3SEndpoint = @"https://projectflourish.azurewebsites.net/api/EntitySchema3S?entitytype={0}";
+        public static readonly string SingleEntitySearch3SEndpoint = "https://projectflourish.azurewebsites.net/api/EntitySearch3S";
 
+        // Do NOT copy over this definition to Custom Code (will break)
         public override StringContent CreateJsonContent(string serializedJson)
         {
             return new StringContent(serializedJson, Encoding.UTF8, "application/json");
@@ -97,7 +101,7 @@ namespace PowerScript
         {
             HttpResponseMessage response = new HttpResponseMessage(HttpStatusCode.OK);
 
-            if (this.Context.OperationId == "GetEntities")
+            if (this.Context.OperationId == "GetEntities") // get list of entities
             {
                 HttpRequestMessage httpRequest3S = new HttpRequestMessage(method: HttpMethod.Get, Entities3SEndpoint);
                 var response3S = await this.Context.SendAsync(httpRequest3S, this.CancellationToken);
@@ -106,7 +110,7 @@ namespace PowerScript
                 response.Content = CreateJsonContent(response3SContent);
                 return response;
             }
-            else if (this.Context.OperationId == "GetAdvancedOptionsSchema")
+            else if (this.Context.OperationId == "GetAdvancedOptionsSchema") // get advanced options schema
             {
                 var queryParams = HttpUtility.ParseQueryString(this.Context.Request.RequestUri.Query);
                 var entityType = queryParams["entityType"];
@@ -127,7 +131,7 @@ namespace PowerScript
                 response.Content = CreateJsonContent(advancedOptionsSchemaSwagger);
                 return response;
             }
-            else if (this.Context.OperationId == "GetResponseSchema")
+            else if (this.Context.OperationId == "GetResponseSchema") // get response schema
             {
                 var queryParams = HttpUtility.ParseQueryString(this.Context.Request.RequestUri.Query);
                 var entityType = queryParams["entityType"];
@@ -149,9 +153,21 @@ namespace PowerScript
                 return response;
 
             }
+            else // get mock 3S single entity search response
+            {
+                var powerRequestString = await this.Context.Request.Content.ReadAsStringAsync();
+                var string3SRequest = PowerV1ToSearchV2RequestTransform(powerRequestString);
 
-            response.Content = CreateJsonContent(string.Empty);
-            return response;
+                HttpRequestMessage httpRequest3S = new HttpRequestMessage(method: HttpMethod.Post, SingleEntitySearch3SEndpoint);
+                httpRequest3S.Content = new StringContent(string3SRequest, Encoding.UTF8, "application/json");
+
+                var response3S = await this.Context.SendAsync(httpRequest3S, this.CancellationToken);
+                var results3S = await response3S.Content.ReadAsStringAsync();
+
+                var table = SearchV2toPowerV1ResponseTransformer(results3S);
+                response.Content = CreateJsonContent(table);
+                return response;
+            }
         }
 
         private string GetAdvancedOptionsSchemaSwagger(string entitySchema3S)
@@ -218,6 +234,271 @@ namespace PowerScript
             };
 
             return JsonConvert.SerializeObject(responseSchema);
+        }
+
+
+        private string PowerV1ToSearchV2RequestTransform(string powerRequestString)
+        {
+            var powerRequest = JsonConvert.DeserializeObject<PowerRequest>(powerRequestString);
+
+            string requestFormat = string.Empty;
+            switch (powerRequest.EntityType)
+            {
+                case "File":
+                    requestFormat = FileRequestFormat;
+                    break;
+                case "Message":
+                    requestFormat = MessageRequestFormat;
+                    break;
+                case "People":
+                    requestFormat = PeopleRequestFormat;
+                    break;
+                default:
+                    //unknown
+                    throw new Exception($"Undefined entity type: {powerRequest.EntityType}");
+            }
+
+            var contentSources = JsonConvert.SerializeObject(powerRequest.AdvancedOptions.ContentSources);
+            var fields = JsonConvert.SerializeObject(powerRequest.AdvancedOptions.Fields);
+
+            var entityRequests = new JArray();
+            entityRequests.Add(JObject.Parse(string.Format(requestFormat, contentSources, powerRequest.From, powerRequest.Size, powerRequest.SearchPhrase, fields)));
+            
+            var substrateRequest = JObject.Parse(CommonRequestEnvelope);
+            substrateRequest["EntityRequests"] = entityRequests;
+
+            return JsonConvert.SerializeObject(substrateRequest);
+        }
+
+        private string SearchV2toPowerV1ResponseTransformer(string results3S)
+        {
+            var jsonObjectResults3S = JObject.Parse(results3S);
+
+            var rows = Tabularize(jsonObjectResults3S);
+
+            var response = new PowerResponse
+            {
+                Results = rows,
+                Diagnostics = new Dictionary<string, object>() { { "trace-id", "123456789" } }
+            };
+
+            return JsonConvert.SerializeObject(response);
+        }
+
+        public struct PowerRequest
+        {
+            public string SearchPhrase;
+            public string EntityType;
+            public bool SortByRelevance;
+            public int From;
+            public int Size;
+            public AdvOptions AdvancedOptions;
+
+            public struct AdvOptions
+            {
+                public List<string> ContentSources;
+                public List<string> Fields;
+
+            };
+        };
+
+        public static readonly string CommonRequestEnvelope = @"{
+                ""Cvid"": ""72aff190-3fa5-44a8-845d-96f24eb01942"",
+                ""Scenario"": {
+                    ""Dimensions"": [
+                        {
+                        ""DimensionName"": ""QueryType"",
+                        ""DimensionValue"": ""Conversation""
+                        }
+                    ],
+                    ""Name"": ""owa.react""
+                },
+                ""WholePageRankingOptions"": {
+                    ""EnableEnrichedRanking"": true,
+                    ""EnableLayoutHints"": true,
+                    ""SupportedSerpRegions"": [
+                        ""MainLine""
+                    ]
+                }
+            }";
+
+        public static readonly string MessageRequestFormat = @"
+            {{
+              ""ContentSources"": {0},
+              ""From"": {1},
+              ""Size"": {2},
+              ""Query"": {{
+                ""QueryString"": ""{3}""}},
+              ""EntityType"": ""Message"",
+              ""BypassResultTypes"": false,
+              ""PreferredResultSourceFormat"": ""AdaptiveCardTemplateBinding"",
+              ""Sort"": [
+                    {{
+                      ""Field"": ""Score"",
+                      ""SortDirection"": ""Desc""
+                    }}
+                ],
+                ""ResultsMerge"": {{
+                    ""Type"": ""Interleaved""
+                }},
+                ""Fields"": [
+                    ""Subject"",
+                    ""Weblink"",
+                    ""Extension_SkypeSpaces_ConversationPost_Extension_Topic_String""
+                ]
+            }}";
+
+
+        public static readonly string PeopleRequestFormat = @"
+            {{
+              ""ContentSources"": {0},
+              ""From"": {1},
+              ""Size"": {2},
+              ""Query"": {{
+                ""QueryString"": ""{3}""
+              }},
+              ""EntityType"": ""People"",
+              ""BypassResultTypes"": false,
+              ""PreferredResultSourceFormat"": ""AdaptiveCardTemplateBinding"",
+              ""Sort"": [
+                    {{
+                      ""Field"": ""Score"",
+                      ""SortDirection"": ""Desc""
+                    }}
+                ],
+                ""ResultsMerge"": {{
+                    ""Type"": ""Interleaved""
+                }},
+                ""Fields"": [
+                    ""DisplayName"",
+                    ""EmailAddresses"",
+                    ""JobTitle""
+                ],
+                ""EnableQueryUnderstanding"": false,
+                ""EnableSpeller"": false,
+                ""IdFormat"": 0,
+                ""Filter"": {{
+                        ""And"": [
+                            {{
+                                ""Term"": {{""PeopleType"": ""Person""}}
+                            }},
+                            {{
+                                ""Term"": {{""PeopleSubtype"": ""OrganizationUser""}}
+                            }}
+                        ]
+                }}
+            }}";
+
+
+        public static readonly string FileRequestFormat = @"
+            {{
+              ""ContentSources"": {0},
+              ""From"": {1},
+              ""Size"": {2},
+              ""Query"": {{
+                    ""QueryString"": ""{3}""}},
+               ""Fields"": {4},
+              ""EntityType"": ""File"",
+              ""BypassResultTypes"": false,
+              ""PreferredResultSourceFormat"": ""AdaptiveCardTemplateBinding"",
+              ""Sort"": [
+                {{
+                  ""Field"": ""Score"",
+                  ""SortDirection"": ""Desc""
+                }}
+                ],
+                ""ResultsMerge"": {{
+                    ""Type"": ""Interleaved""
+                }},
+                ""EnableQueryUnderstanding"": false,
+                ""EnableSpeller"": false,
+                ""IdFormat"": 0,
+                ""HitHighlight"": {{
+                    ""HitHighlightedProperties"": [
+                      ""HitHighlightedSummary""
+                    ],
+                    ""SummaryLength"": 200
+                  }}
+            }}";
+
+        public struct PowerResponse
+        {
+            public List<Dictionary<string, object>> Results;
+            public Dictionary<string, object> Diagnostics;
+        }
+
+        private List<Dictionary<string, object>> Tabularize(JObject jsonObject)
+        {
+            var rows = new List<Dictionary<string, object>>();
+            var esNo = 0;
+            foreach (var entitySet in jsonObject?["EntitySets"] ?? new JArray())
+            {
+                var jObjEntitySet = entitySet as JObject;
+                var rsNo = 0;
+                foreach (var resultSet in jObjEntitySet?["ResultSets"] ?? new JArray())
+                {
+                    var jObjResultSet = resultSet as JObject;
+
+                    foreach (var result in jObjResultSet?["Results"] ?? new JArray())
+                    {
+                        var jObjResult = result as JObject;
+                        var resultDict = Flatten(jObjResult);
+                        rows.Add(resultDict);
+                    }
+                    rsNo++;
+                }
+                esNo++;
+            }
+
+            return rows;
+        }
+
+        /// <summary>
+        /// FROM: https://github.com/GFoley83/JsonFlatten/blob/master/JsonFlatten/JsonExtensions.cs
+        /// Using code instead of nuget for hack
+        /// </summary>
+        /// <param name="jsonObject"></param>
+        /// <param name="includeNullAndEmptyValues"></param>
+        /// <returns></returns>
+        private Dictionary<string, object> Flatten(JObject jsonObject, bool includeNullAndEmptyValues = true)
+        {
+            return jsonObject?
+                .Descendants()?
+                .Where(p => !p?.Any() ?? false)?
+                .Aggregate(new Dictionary<string, object>(), (properties, jToken) =>
+                {
+                    var value = (jToken as JValue)?.Value;
+
+                    if (!includeNullAndEmptyValues)
+                    {
+                        if (value?.Equals("") == false)
+                        {
+                            properties.Add(jToken.Path, value);
+                        }
+
+                        return properties;
+                    }
+
+                    var strVal = jToken?.Value<object>()?.ToString()?.Trim();
+                    if (strVal?.Equals("[]") == true)
+                    {
+                        value = Enumerable.Empty<object>();
+                    }
+                    else if (strVal?.Equals("{}") == true)
+                    {
+                        value = new object();
+                    }
+
+                    //properties.Add(jToken.Path, value);
+
+                    var name = (jToken?.Parent as JProperty)?.Name;
+                    if (!string.IsNullOrEmpty(name) && !properties.ContainsKey(name))
+                    {
+                        properties.Add(name, value);
+                    }
+
+                    return properties;
+                });
         }
     }
 }

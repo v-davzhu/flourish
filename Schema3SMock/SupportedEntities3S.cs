@@ -11,6 +11,7 @@ using System.Net.Http;
 using System.Collections.Generic;
 using System.Net;
 using System.Text;
+using System.Linq;
 
 namespace ProjectFlourish.Schema3S
 {
@@ -22,6 +23,9 @@ namespace ProjectFlourish.Schema3S
             ILogger log)
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
+
+            req.Headers.TryGetValues("Authorization", out var authorization);
+            log.LogInformation($"Authorization Size: {authorization?.FirstOrDefault()?.Length}");
 
             var entities = new List<string>() {
                 "File",

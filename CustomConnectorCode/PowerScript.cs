@@ -89,7 +89,7 @@ namespace PowerScript
         public static readonly string Entities3SEndpoint = "https://projectflourish.azurewebsites.net/api/Entities3S";
         public static readonly string AdvancedOptions3SEndpoint = @"https://projectflourish.azurewebsites.net/api/EntitySchema3S?entitytype={0}";
         public static readonly string ResponseSchema3SEndpoint = @"https://projectflourish.azurewebsites.net/api/EntitySchema3S?entitytype={0}";
-        public static readonly string SingleEntitySearch3SEndpoint = "https://projectflourish.azurewebsites.net/api/EntitySearch3S";
+        public static readonly string SingleEntitySearch3SEndpoint = "https://substrate.office.com/search/api/v2/query?debug=1";
 
         // Do NOT copy over this definition to Custom Code (will break)
         public override StringContent CreateJsonContent(string serializedJson)
@@ -100,10 +100,16 @@ namespace PowerScript
         public override async Task<HttpResponseMessage> ExecuteAsync()
         {
             HttpResponseMessage response = new HttpResponseMessage(HttpStatusCode.OK);
+            
+            this.Context.Request.Headers.TryGetValues("Authorization", out var auth);
 
             if (this.Context.OperationId == "GetEntities") // get list of entities
             {
                 HttpRequestMessage httpRequest3S = new HttpRequestMessage(method: HttpMethod.Get, Entities3SEndpoint);
+                if (auth != null && auth.Any())
+                {
+                    httpRequest3S.Headers.Add("Authorization", auth);
+                }
                 var response3S = await this.Context.SendAsync(httpRequest3S, this.CancellationToken);
                 var response3SContent = await response3S.Content.ReadAsStringAsync();
 
@@ -122,7 +128,10 @@ namespace PowerScript
                 }
 
                 HttpRequestMessage httpRequest3S = new HttpRequestMessage(method: HttpMethod.Get, string.Format(AdvancedOptions3SEndpoint, entityType));
-
+                if (auth != null && auth.Any())
+                {
+                    httpRequest3S.Headers.Add("Authorization", auth);
+                }
                 var response3S = await this.Context.SendAsync(httpRequest3S, this.CancellationToken);
                 var entitySchema3S = await response3S.Content.ReadAsStringAsync();
 
@@ -143,7 +152,10 @@ namespace PowerScript
                 }
 
                 HttpRequestMessage httpRequest3S = new HttpRequestMessage(method: HttpMethod.Get, string.Format(ResponseSchema3SEndpoint, entityType));
-
+                if (auth != null && auth.Any())
+                {
+                    httpRequest3S.Headers.Add("Authorization", auth);
+                }
                 var response3S = await this.Context.SendAsync(httpRequest3S, this.CancellationToken);
                 var responseSchema3S = await response3S.Content.ReadAsStringAsync();
 
@@ -160,9 +172,17 @@ namespace PowerScript
 
                 HttpRequestMessage httpRequest3S = new HttpRequestMessage(method: HttpMethod.Post, SingleEntitySearch3SEndpoint);
                 httpRequest3S.Content = new StringContent(string3SRequest, Encoding.UTF8, "application/json");
-
+                if (auth != null && auth.Any())
+                {
+                    httpRequest3S.Headers.Add("Authorization", auth);
+                }
                 var response3S = await this.Context.SendAsync(httpRequest3S, this.CancellationToken);
                 var results3S = await response3S.Content.ReadAsStringAsync();
+
+                if (response3S.StatusCode != HttpStatusCode.OK)
+                {
+                    return response3S;
+                }
 
                 var table = SearchV2toPowerV1ResponseTransformer(results3S);
                 response.Content = CreateJsonContent(table);

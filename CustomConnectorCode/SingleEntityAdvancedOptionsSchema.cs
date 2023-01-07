@@ -12,44 +12,29 @@ using System.Runtime.CompilerServices;
 using System.Web;
 using System.Text;
 using Newtonsoft.Json.Linq;
+using PowerScript;
 
 namespace ProjectFlourish.CustomConnectorCode
 {
     public static class SingleEntityAdvancedOptionsSchema
     {
+        public static Script script = new Script();
+
         [FunctionName("singleEntityAdvancedOptionsSchema")]
         public static async Task<HttpResponseMessage> Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequestMessage req,
             ILogger log)
         {
-            log.LogInformation("C# HTTP trigger function processed a request.");
+            //log.LogInformation("C# HTTP trigger function processed a request.");
 
-            //var queryParams = req.GetQueryNameValuePairs();
+            script.Context = new ScriptContext();
+            script.Context.OperationId = "GetAdvancedOptionsSchema";
+            script.Context.Request = req;
 
-            var queryParams = HttpUtility.ParseQueryString(req.RequestUri.Query);
-            var entityType = queryParams["entityType"];
-            var entitySchema = string.Empty;
-
-            switch (entityType)
-            {
-                case "File":
-                    entitySchema = await GetFileEntitySchemaAsync();
-                    break;
-                default:
-                    break;
-            }
-
-
-            var responseMessage = entitySchema; // JsonConvert.SerializeObject(entitySchema);
-            var stringContent = new StringContent(responseMessage, Encoding.UTF8, "application/json");
-            HttpResponseMessage response = new HttpResponseMessage(HttpStatusCode.OK);
-            response.Content = stringContent;
-
-            return response;
+            return await script.ExecuteAsync();
         }
 
-
-        private static async Task<string> GetFileEntitySchemaAsync()
+        /*private static async Task<string> GetFileEntitySchemaAsync()
         {
             HttpRequestMessage httpRequest3S = new HttpRequestMessage(method: HttpMethod.Get, "https://projectflourish.azurewebsites.net/api/EntitySchema3S?entitytype=File");
 
@@ -91,6 +76,6 @@ namespace ProjectFlourish.CustomConnectorCode
                   }},
                   ""x-ms-visibility"": ""advanced""
                 }}
-            ";
+            ";*/
     }
 }

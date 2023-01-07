@@ -12,6 +12,7 @@ using System.Runtime.CompilerServices;
 using System.Web;
 using System.Text;
 using Newtonsoft.Json.Linq;
+using System.Linq;
 
 namespace ProjectFlourish.Schema3S
 {
@@ -23,6 +24,9 @@ namespace ProjectFlourish.Schema3S
             ILogger log)
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
+
+            req.Headers.TryGetValues("Authorization", out var authorization);
+            log.LogInformation($"Authorization Size: {authorization?.FirstOrDefault()?.Length}");
 
             //var queryParams = req.GetQueryNameValuePairs();
 
@@ -57,7 +61,7 @@ namespace ProjectFlourish.Schema3S
 
         private static readonly string FileSchemaFrom3S = @"
             {
-              ""ContentSources"": [ ""SPO"", ""ODB"" ],
+              ""ContentSources"": [ ""Sharepoint"", ""OneDriveBusiness"" ],
               ""Fields"": {
                 ""Field-Bool"": {
                   ""type"": ""boolean"",

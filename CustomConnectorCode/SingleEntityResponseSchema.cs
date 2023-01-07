@@ -12,11 +12,14 @@ using System.Runtime.CompilerServices;
 using System.Web;
 using System.Text;
 using Newtonsoft.Json.Linq;
+using PowerScript;
 
 namespace ProjectFlourish.CustomConnectorCode
 {
     public static class SingleEntityResponseSchema
     {
+        public static Script script = new Script();
+
         [FunctionName("singleEntityResponseSchema")]
         public static async Task<HttpResponseMessage> Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequestMessage req,
@@ -24,7 +27,13 @@ namespace ProjectFlourish.CustomConnectorCode
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
 
-            var queryParams = HttpUtility.ParseQueryString(req.RequestUri.Query);
+            script.Context = new ScriptContext();
+            script.Context.OperationId = "GetResponseSchema";
+            script.Context.Request = req;
+
+            return await script.ExecuteAsync();
+
+            /*var queryParams = HttpUtility.ParseQueryString(req.RequestUri.Query);
             var entityType = queryParams["entityType"];
             var entitySchema = string.Empty;
 
@@ -42,11 +51,11 @@ namespace ProjectFlourish.CustomConnectorCode
             HttpResponseMessage response = new HttpResponseMessage(HttpStatusCode.OK);
             response.Content = stringContent;
 
-            return response;
+            return response;*/
         }
 
 
-        private static async Task<string> GetFileEntitySchemaAsync()
+        /*private static async Task<string> GetFileEntitySchemaAsync()
         {
             HttpRequestMessage httpRequest3S = new HttpRequestMessage(method: HttpMethod.Get, "https://projectflourish.azurewebsites.net/api/EntitySchema3S?entitytype=File"); //"https://projectflourish.azurewebsites.net/api/EntityResponseSchema3S?entitytype=File");
 
@@ -80,6 +89,6 @@ namespace ProjectFlourish.CustomConnectorCode
                     }
                   }
                 }
-            ";
+            ";*/
     }
 }

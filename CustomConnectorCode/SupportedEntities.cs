@@ -11,31 +11,30 @@ using System.Net.Http;
 using System.Collections.Generic;
 using System.Net;
 using System.Text;
+using PowerScript;
+using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace ProjectFlourish.CustomConnectorCode
 {
     public static class SupportedEntities
     {
+
+        public static Script script = new Script();
+
         [FunctionName("Entities")]
         public static async Task<HttpResponseMessage> Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequestMessage req,
             ILogger log)
         {
+            //log.LogInformation("C# HTTP trigger function processed a request.");
 
-            log.LogInformation("C# HTTP trigger function processed a request.");
+            script.Context = new ScriptContext();
+            script.Context.OperationId = "GetEntities";
+            script.Context.Request = req;
 
-            HttpRequestMessage httpRequest3S = new HttpRequestMessage(method: HttpMethod.Get, "https://projectflourish.azurewebsites.net/api/Entities3S");
+            return await script.ExecuteAsync();
 
-            HttpClient httpClient = new HttpClient();
-            var response3S = await httpClient.SendAsync(httpRequest3S);
-
-            var entities3S = await response3S.Content.ReadAsStringAsync();
-
-            var stringContent = new StringContent(entities3S, Encoding.UTF8, "application/json");
-            HttpResponseMessage response = new HttpResponseMessage(HttpStatusCode.OK);
-            response.Content = stringContent;
-
-            return response;
         }
     }
 }

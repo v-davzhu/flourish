@@ -4,15 +4,11 @@
     {
         public static readonly string Data = @"
             {
-              ""ContentSources"": [ ""Exchange"", ""SharePoint"" ],
+              ""ContentSources"": [ ""Exchange"" ],
               ""Fields"": {
                 ""Id"": {
                     ""type"": ""string"",
                     ""description"": ""Id of the contact. For organizational users it is uid@tid (User.ExternalObjectDirectoryId@Tenant.ExternalDirectoryObjectId) For external contact it is personId. It is not recommended to use or parse this id in your product""
-                },
-                ""TenantId"": {
-                    ""type"": ""string"",
-                    ""description"": ""Tenant ID of the contact. For Active Directory users this will be their tenant id (similar to the suffix section of the Id). For non-Active Directory users this field will not be returned.""
                 },
                 ""DisplayName"": { 
                     ""type"": ""string"",

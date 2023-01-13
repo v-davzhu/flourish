@@ -347,7 +347,9 @@ namespace PowerScript
               ""From"": {1},
               ""Size"": {2},
               ""Query"": {{
-                ""QueryString"": ""{3}""}},
+                ""QueryString"": ""{3}""
+              }},
+              ""Fields"": {4},
               ""EntityType"": ""Message"",
               ""BypassResultTypes"": false,
               ""PreferredResultSourceFormat"": ""AdaptiveCardTemplateBinding"",
@@ -359,12 +361,7 @@ namespace PowerScript
                 ],
                 ""ResultsMerge"": {{
                     ""Type"": ""Interleaved""
-                }},
-                ""Fields"": [
-                    ""Subject"",
-                    ""Weblink"",
-                    ""Extension_SkypeSpaces_ConversationPost_Extension_Topic_String""
-                ]
+                }}
             }}";
 
 
@@ -388,11 +385,7 @@ namespace PowerScript
                 ""ResultsMerge"": {{
                     ""Type"": ""Interleaved""
                 }},
-                ""Fields"": [
-                    ""DisplayName"",
-                    ""EmailAddresses"",
-                    ""JobTitle""
-                ],
+                ""Fields"": {4},
                 ""EnableQueryUnderstanding"": false,
                 ""EnableSpeller"": false,
                 ""IdFormat"": 0,
@@ -415,8 +408,9 @@ namespace PowerScript
               ""From"": {1},
               ""Size"": {2},
               ""Query"": {{
-                    ""QueryString"": ""{3}""}},
-               ""Fields"": {4},
+                    ""QueryString"": ""{3}""
+              }},
+              ""Fields"": {4},
               ""EntityType"": ""File"",
               ""BypassResultTypes"": false,
               ""PreferredResultSourceFormat"": ""AdaptiveCardTemplateBinding"",
@@ -511,7 +505,19 @@ namespace PowerScript
                     //properties.Add(jToken.Path, value);
 
                     var name = (jToken?.Parent as JProperty)?.Name;
-                    if (!string.IsNullOrEmpty(name) && !properties.ContainsKey(name))
+
+                    // TODO: handling of values that are array of objects
+                    if (jToken?.Parent.Type == JTokenType.Array)
+                    {
+                        name = (jToken?.Parent?.Parent as JProperty)?.Name;
+
+                        if (!properties.ContainsKey(name))
+                        {
+                            properties.Add(name, new List<object>());
+                        }
+
+                        (properties[name] as List<object>).Add(value);
+                    } else if (!string.IsNullOrEmpty(name) && !properties.ContainsKey(name))
                     {
                         properties.Add(name, value);
                     }

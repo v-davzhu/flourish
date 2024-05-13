@@ -8,39 +8,38 @@
               ""Fields"": {
                 ""URL"": {
                     ""type"": ""string"",
-                    ""description"": ""The target URL of the item in the source system""
+                    ""description"": ""The target URL of the item in the source system"",
+                    ""isQueryable"": false
                 },
                 ""Description"": {
                     ""type"": ""string"",
-                    ""description"": """"
-                },
-                ""SubstrateContentDomainId"": { 
-                    ""type"": ""string"",
-                    ""description"": """"
-                },
-                ""SubstrateLocationId"": {
-                    ""type"": ""string"",
-                    ""description"": """"
+                    ""description"": """",
+                    ""isQueryable"": true
                 },
                 ""DocumentId"": {
                     ""type"": ""string"",
-                    ""description"": """"
-                },
-                ""ImmutableEntryId"": {
-                    ""type"": ""string"",
-                    ""description"": """"
+                    ""description"": """",
+                    ""isQueryable"": true
                 },
                 ""Id"": {
                     ""type"": ""string"",
-                    ""description"": """"
+                    ""description"": """",
+                    ""isQueryable"": false
                 },
                 ""Title"": {
                     ""type"": ""string"",
-                    ""description"": ""The title for the item that you want shown in search and other experiences""
+                    ""description"": ""The title for the item that you want shown in search and other experiences"",
+                    ""isQueryable"": true
+                },
+                ""ImmutableEntryId"": {
+                    ""type"": ""string"",
+                    ""description"": """",
+                    ""isQueryable"": false
                 },
                 ""HitHighlightedProperties"": {
                     ""type"": ""string"",
-                    ""description"": """"
+                    ""description"": """",
+                    ""isQueryable"": false
                 }
               }
             }

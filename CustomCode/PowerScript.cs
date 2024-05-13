@@ -86,9 +86,12 @@ namespace PowerScript
     // Develop Script class here and copy over to Custom Code
     public class Script : ScriptBase
     {
-        public static readonly string Entities3SEndpoint = "https://projectflourish.azurewebsites.net/api/Entities3S";
-        public static readonly string EntitySchema3SEndpoint = @"https://projectflourish.azurewebsites.net/api/EntitySchema3S?entitytype={0}";
+        //public static readonly string Entities3SEndpoint = "https://projectflourish.azurewebsites.net/api/Entities3S";
+        //public static readonly string EntitySchema3SEndpoint = @"https://projectflourish.azurewebsites.net/api/EntitySchema3S?entitytype={0}";
+        public static readonly string Entities3SEndpoint = "https://dzsearchfunc.azurewebsites.net/api/Entities3S";
+        public static readonly string EntitySchema3SEndpoint = @"https://dzsearchfunc.azurewebsites.net/api/EntitySchema3S?entitytype={0}";
         public static readonly string SingleEntitySearch3SEndpoint = "https://substrate.office.com/search/api/v2/query?debug=1&setflight=NuowoFlight&ClientAppOverride=e7157397-db36-4c3f-9e7d-905509378877";
+        public static readonly string Operators3SEndpoint = "https://dzsearchfunc.azurewebsites.net/api/Operators3S";
 
         // Ignore this when copying
         public override StringContent CreateJsonContent(string serializedJson)
@@ -101,6 +104,20 @@ namespace PowerScript
             HttpResponseMessage response = new HttpResponseMessage(HttpStatusCode.OK);
             
             this.Context.Request.Headers.TryGetValues("Authorization", out var auth);
+
+            if (this.Context.OperationId == "GetOperators") // get list of operators
+            {
+                HttpRequestMessage httpRequest3S = new HttpRequestMessage(method: HttpMethod.Get, Operators3SEndpoint);
+                if (auth != null && auth.Any())
+                {
+                    httpRequest3S.Headers.Add("Authorization", auth);
+                }
+                var response3S = await this.Context.SendAsync(httpRequest3S, this.CancellationToken);
+                var response3SContent = await response3S.Content.ReadAsStringAsync();
+
+                response.Content = CreateJsonContent(response3SContent);
+                return response;
+            }
 
             if (this.Context.OperationId == "GetEntities") // get list of entities
             {
@@ -119,6 +136,7 @@ namespace PowerScript
             {
                 var queryParams = HttpUtility.ParseQueryString(this.Context.Request.RequestUri.Query);
                 var entityType = queryParams["entityType"];
+
 
                 if (string.IsNullOrEmpty(entityType))
                 {
@@ -219,7 +237,7 @@ namespace PowerScript
                             ["type"] = "string",
                             ["enum"] = JToken.FromObject(fields.Keys)
                         },
-                        ["default"] = JToken.FromObject(fields.Keys)
+                        ["default"] = JToken.FromObject(fields.Keys.Take(2))
                     }
                 }
             };

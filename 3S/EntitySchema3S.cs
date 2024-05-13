@@ -59,7 +59,7 @@ namespace ProjectFlourish.Schema3S
             HttpResponseMessage response = new HttpResponseMessage(HttpStatusCode.OK);
             response.Content = stringContent;
             
-            return response;
+            return await Task.FromResult(response);
         }
     }
 }
